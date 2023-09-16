@@ -5,6 +5,7 @@
 This program is designed to solve a given maze using the "Left Hand Rule" algorithm. The maze is first extracted from an image, then the program attempts to find a path through the maze such that all open paths (`0`s) are visited.
 
 ![picoDoolhof](/assets/img/picoDoolhof.png)
+![screenshot](/assets/img/screenshot.png)
 
 ### How It Works
 
