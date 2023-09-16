@@ -1,58 +1,65 @@
-const fs = require('fs');
+const fs = require('fs').promises;
 const { solveMazeLeftHandRule } = require('./src/controller/solveMazeLeftHandRule');
 const { convertToNumericMatrix } = require('./src/middleware/converter');
 const { extractMaze } = require('./src/middleware/imageToJsonMatrix');
 
 
-
+/**
+ * The main function orchestrating the maze solving process.
+ * It performs the following steps:
+ * 1. Cleans up old files.
+ * 2. Writes the maze matrix from an image to a file.
+ * 3. Converts the matrix to a numeric format and writes it to another file.
+ * 4. Solves the maze using the left-hand rule.
+ */
 async function main() {
-    //Cleanup the fles before starting
+    // Cleanup the files before starting
     await cleanUpFiles();
-    // start first part.
-    await writeMatrixFile('assets/json/matrixText.json')
-    // start second part
-    const matrixText = await readMatrixFile('assets/json/matrixText.json');
-    // console.log(matrixText)
-    maze = convertToNumericMatrix(JSON.parse(matrixText));
-    fs.writeFileSync('assets/json/maxtrixNumeric.json', JSON.stringify(maze));
 
+    // Write the matrix
+    await writeMatrixFile('assets/img/picoDoolhof.png', 'assets/json/matrixText.json');
+
+    // Read the matrix and convert to numeric format
+    const matrixText = await fs.readFile('assets/json/matrixText.json', 'utf8');
+    const maze = convertToNumericMatrix(JSON.parse(matrixText));
+
+    await fs.writeFile('assets/json/maxtrixNumeric.json', JSON.stringify(maze));
+
+    // Solve the maze using the left-hand rule
     solveMazeLeftHandRule(maze);
 }
 
-
-async function writeMatrixFile(fileName) {
-    return new Promise((resolve, reject) => {
-        extractMaze('assets/img/picoDoolhof.png')
-            .then(maze => {
-                console.log(maze);
-                try {
-                    fs.writeFileSync(fileName, JSON.stringify(maze));
-                    resolve();  // Resolve the promise after writing the file
-                } catch (err) {
-                    reject(err);  // Reject the promise if there's an error writing the file
-                }
-            })
-            .catch(err => {
-                reject(err);  // Reject the promise if there's an error extracting the maze
-            });
-    });
+/**
+ * Extracts the maze matrix from an input image and writes the matrix to a specified file.
+ *
+ * @param {string} inputImagePath - The path to the input image containing the maze.
+ * @param {string} outputFileName - The path to the output file where the maze matrix should be written.
+ */
+async function writeMatrixFile(inputImagePath, outputFileName) {
+    const maze = await extractMaze(inputImagePath);
+    console.log(maze);
+    await fs.writeFile(outputFileName, JSON.stringify(maze));
 }
 
-
-async function readMatrixFile(fileName) {
-    return new Promise((resolve, reject) => {
-        fs.readFile(fileName, 'utf8', (err, data) => {
-            if (err) reject(err);
-            else resolve(data);
-        });
-    });
-}
-
+/**
+ * Cleans up specified files by resetting their content.
+ * Useful for ensuring a clean state before operations.
+ */
 async function cleanUpFiles() {
-    fs.writeFile('assets/json/matrixText.json', '', function () { console.log('cleaning matrixText.json done') })
-    fs.writeFile('assets/json/maxtrixNumeric.json', '', function () { console.log('cleaning maxtrixNumeric.json done') })
-    fs.writeFile('output/pathInText.txt', '', function () { console.log('cleaning pathInText.txt done') })
-    fs.writeFile('output/solutionMazeVisual.txt', '', function () { console.log('cleaning solutionMazeVisual.txt done') })
+    const filesToClean = [
+        'assets/json/matrixText.json',
+        'assets/json/maxtrixNumeric.json',
+        'output/pathInText.txt',
+        'output/solutionMazeVisual.txt'
+    ];
+
+    for (const filePath of filesToClean) {
+        await fs.writeFile(filePath, '');
+        console.log(`cleaning ${filePath} done`);
+    }
 }
 
-main();
+// Calls the main function and catches any errors that might occur
+main().catch(error => {
+    console.error('An error occurred:', error);
+});
