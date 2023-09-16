@@ -4,6 +4,8 @@
 
 This program is designed to solve a given maze using the "Left Hand Rule" algorithm. The maze is first extracted from an image, then the program attempts to find a path through the maze such that all open paths (`0`s) are visited.
 
+![picoDoolhof](/assets/img/picoDoolhof.png)
+
 ### How It Works
 
 1. **Maze Extraction from Image**:
@@ -22,7 +24,45 @@ This program is designed to solve a given maze using the "Left Hand Rule" algori
 4. **Visualizing the Solution**:
    After solving the maze, the program visualizes the solution by marking the path taken with `*`. This visualization is saved in a text file for easy reference.
 
-   ### Output
+### Example Matrix Representation
+
+#### Text-based Representation:
+
+```
+S W P P P
+W P W P W
+P P P P W
+W P W P W
+W P W P P
+```
+
+- `assets/json/matrixText.json`
+
+Where:
+
+- `S` represents the Start
+- `W` represents a Wall
+- `P` represents a Path
+
+#### Numeric Representation:
+
+```
+2 1 0 0 0
+1 0 1 0 1
+0 0 0 0 1
+1 0 1 0 1
+1 0 1 0 0
+```
+
+- `assets/json/maxtrixNumeric.json`
+
+Where:
+
+- `2` represents the Start
+- `1` represents a Wall
+- `0` represents a Path
+
+### Output
 
 After successfully running the program, you can find the output in the following locations:
 
