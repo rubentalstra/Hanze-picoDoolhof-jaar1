@@ -1,115 +1,83 @@
 const fs = require('fs');
 
-// Define directions for moving up, down, left, and right
-const directions = [
-    { x: -1, y: 0, dir: 'up' },    // North
-    { x: 0, y: 1, dir: 'right' },  // East
-    { x: 1, y: 0, dir: 'down' },   // South
-    { x: 0, y: -1, dir: 'left' }   // West
+// Define DIRECTIONS for moving up, down, left, and right
+const DIRECTIONS = [
+    { dir: 'up', x: -1, y: 0 },     // North
+    { dir: 'right', x: 0, y: 1 },   // East
+    { dir: 'down', x: 1, y: 0 },    // South
+    { dir: 'left', x: 0, y: -1 }    // West
 ];
 
-// Function to get the next direction according to the left-hand rule
-function getNextDirection(currentDirection, turn) {
-    let idx = directions.findIndex(d => d.dir === currentDirection);
-    idx = (idx + turn + 4) % 4;  // Add 4 to handle negative index
-    return directions[idx].dir;
+function getNextDirectionIndex(currentIdx, turn) {
+    return (currentIdx + turn + 4) % 4; // Add 4 to handle negative index
+}
+
+function getNextPosition(position, direction) {
+    return {
+        x: position.x + direction.x,
+        y: position.y + direction.y
+    };
 }
 
 function leftHandRule(matrix, start) {
-    let currentDirection = 'up'; // Assuming we start facing up
+    let currentIdx = 0; // Assuming we start facing up (index 0)
     let path = [];
-    let currentPosition = start;
+    let currentPosition = { ...start };
     let visited = {};
 
-    // Set the starting position to 0 after determining the initial direction
     matrix[start.x][start.y] = 0;
 
-    // Create a set of all '0' positions in the maze
-    let zeros = new Set();
+    const zeros = new Set();
     for (let i = 0; i < matrix.length; i++) {
         for (let j = 0; j < matrix[i].length; j++) {
-            if (matrix[i][j] === 0) {
-                zeros.add(`${i}-${j}`);
-            }
+            if (matrix[i][j] === 0) zeros.add(`${i}-${j}`);
         }
     }
 
     while (true) {
+        let possibleMoves = [-1, 0, 1, 2].map(turn => {
+            const nextDirIdx = getNextDirectionIndex(currentIdx, turn);
+            const direction = DIRECTIONS[nextDirIdx];
+            const nextPos = getNextPosition(currentPosition, direction);
 
-
-
-        let leftDir = getNextDirection(currentDirection, -1);  // Turn left
-        let straightDir = currentDirection;                    // Go straight
-        let rightDir = getNextDirection(currentDirection, 1);  // Turn right
-        let backDir = getNextDirection(currentDirection, 2);   // Turn around
-
-        let leftMove = directions.find(d => d.dir === leftDir);
-        let straightMove = directions.find(d => d.dir === straightDir);
-        let rightMove = directions.find(d => d.dir === rightDir);
-        let backMove = directions.find(d => d.dir === backDir);
-
-        let leftPos = { x: currentPosition.x + leftMove.x, y: currentPosition.y + leftMove.y };
-        let straightPos = { x: currentPosition.x + straightMove.x, y: currentPosition.y + straightMove.y };
-        let rightPos = { x: currentPosition.x + rightMove.x, y: currentPosition.y + rightMove.y };
-        let backPos = { x: currentPosition.x + backMove.x, y: currentPosition.y + backMove.y };
+            return { direction: direction.dir, position: nextPos, dirIdx: nextDirIdx };
+        });
 
         let key = `${currentPosition.x}-${currentPosition.y}`;
-        // Update the visited count for the current position
-        if (!visited[key]) {
-            visited[key] = 1;
-        } else {
-            visited[key]++;
-        }
+        visited[key] = (visited[key] || 0) + 1;
 
-        // After each move
         if (matrix[currentPosition.x][currentPosition.y] === 0) {
-            zeros.delete(`${currentPosition.x}-${currentPosition.y}`);
+            zeros.delete(key);
         }
 
-        // Check if all 0's were reached, and if so, break the loop
-        if (zeros.size === 0) {
-            console.log("The * has reached every 0 in the maze!");
+        if (zeros.size === 0 || visited[key] > 5) {
             break;
         }
 
-        // If a position is visited more than 5 times, break
-        if (visited[key] > 5) {
-            break;
+        const validMove = possibleMoves.find(move => isValidMove(move.position, matrix));
+
+        if (!validMove) {
+            break; // No valid move found
         }
 
-        if (isValidMove(leftPos, matrix)) {
-            path.push(leftDir);
-            currentPosition = leftPos;
-            currentDirection = leftDir;
-        } else if (isValidMove(straightPos, matrix)) {
-            path.push(straightDir);
-            currentPosition = straightPos;
-            currentDirection = straightDir;
-        } else if (isValidMove(rightPos, matrix)) {
-            path.push(rightDir);
-            currentPosition = rightPos;
-            currentDirection = rightDir;
-        } else if (isValidMove(backPos, matrix)) {
-            path.push(backDir);
-            currentPosition = backPos;
-            currentDirection = backDir;
-        } else {
-            // If no move is possible, we're stuck
-            break;
-        }
-
+        path.push(validMove.direction);
+        currentPosition = validMove.position;
+        currentIdx = validMove.dirIdx;
     }
 
     return path;
 }
 
 function isValidMove(position, matrix) {
-    return position.x >= 0 && position.y >= 0 && position.x < matrix.length && position.y < matrix[0].length && matrix[position.x][position.y] === 0;
+    if (!matrix || matrix.length === 0) return false; // Ensure matrix is non-empty
+
+    const { x, y } = position;
+
+    const isWithinBounds = x >= 0 && y >= 0 && x < matrix.length && y < matrix[0].length;
+    const isPositionAvailable = isWithinBounds && matrix[x][y] === 0;
+
+    return isPositionAvailable;
 }
-
-
-
-// 
 
 
 function visualizeMovement(maze, path, startPosition) {
@@ -142,61 +110,51 @@ function visualizeMovement(maze, path, startPosition) {
 }
 
 function printMaze(maze) {
-    let mazeString = "";
+    if (maze.length === 0) return '';
 
-    // Top border
-    mazeString += " " + "X".repeat(maze[0].length * 2 - 1) + "\n";
+    const getBorder = () => " " + "X".repeat(maze[0].length * 2 - 1) + "\n";
+
+    let mazeString = getBorder();
 
     for (let row of maze) {
-        let rowStr = "X"; // Start with left border for each row
-        rowStr += row.map(cell => {
-            switch (cell) {
-                case 2:
-                    return '*';  // Green for 2
-                case 1:
-                    return 'X';  // Blue for 1
-                case 0:
-                default:
-                    return ' ';  // White for 0
-            }
-        }).join(' ');
-        rowStr += "X"; // Add right border for each row
+        let rowStr = "X" + row.map(cell => {
+            return cell === 2 ? '*' : cell === 1 ? 'X' : ' ';
+        }).join(' ') + "X";
         mazeString += rowStr + '\n';
     }
 
-    // Bottom border
-    mazeString += " " + "X".repeat(maze[0].length * 2 - 1) + "\n";
+    mazeString += getBorder();
 
     return mazeString;
 }
 
-
-
-
-// 
-exports.solveMazeLeftHandRule = (maze) => {
-    // Find the starting point
-    let start = null;
+// Helper function to find the starting point
+function findStartingPoint(maze) {
     for (let i = 0; i < maze.length; i++) {
         for (let j = 0; j < maze[i].length; j++) {
             if (maze[i][j] === 2) {
-                start = { x: i, y: j };
-                break;
+                return { x: i, y: j };
             }
         }
-        if (start) break;
     }
-
-    console.log(start)
-    if (start) {
-        const path = leftHandRule(maze, start);
-        console.log(`Path to visit all paths: ${path.join(' -> ')}`);
-
-        fs.writeFileSync('output/pathInText.txt', path.join(' -> '));
-
-        visualizeMovement(maze, leftHandRule(maze, start), start);
-    } else {
-        console.log('No starting point found.');
-    }
+    return null;
 }
 
+exports.solveMazeLeftHandRule = (maze) => {
+    const start = findStartingPoint(maze);
+
+    if (!start) {
+        console.log('No starting point found.');
+        return;
+    }
+
+    console.log(start);
+    const path = leftHandRule(maze, start);
+    if (path && path.length) {
+        console.log(`Path to visit all paths: ${path.join(' -> ')}`);
+        fs.writeFileSync('output/pathInText.txt', path.join(' -> '));
+        visualizeMovement(maze, path, start);
+    } else {
+        console.log('No path found.');
+    }
+}

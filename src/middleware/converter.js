@@ -1,12 +1,9 @@
-exports.convertToNumericMatrix = (maze) => {
-    return maze.map(row => {
-        return row.map(cell => {
-            switch (cell) {
-                case 'P': return 0;
-                case 'W': return 1;
-                case 'S': return 2;
-                default: return -1; // For any unexpected value
-            }
-        });
-    });
-}
+exports.convertToNumericMatrix = maze => maze.map(row => row.map(cell => {
+    const cellMapping = {
+        'P': 0,
+        'W': 1,
+        'S': 2
+    };
+
+    return cellMapping[cell] !== undefined ? cellMapping[cell] : -1; // For any unexpected value
+}));
